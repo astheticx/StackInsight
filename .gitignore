@@ -1,0 +1,55 @@
+# ==================================================
+# Python / FastAPI backend
+# ==================================================
+backend/venv/
+backend/.venv/
+backend/env/
+venv/
+.venv/
+
+__pycache__/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ==================================================
+# Node / Vite frontend
+# ==================================================
+frontend/node_modules/
+node_modules/
+frontend/dist/
+dist/
+
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/.env.local
+
+# ==================================================
+# Environment / secrets (root level)
+# ==================================================
+.env
+.env.*
+!.env.example
+
+# ==================================================
+# Temporary / generated files
+# ==================================================
+tmp/
+temp/
+*.log
+
+# ==================================================
+# IDE / OS
+# ==================================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
