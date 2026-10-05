@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.repositories import router as repositories_router
+from app.routes.scans import router as scans_router
 
 app = FastAPI(
     title="StackInsight API",
     description="AI-Powered DevSecOps Security Analysis Platform",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 # Allow requests from the local Vite dev server
@@ -22,6 +23,7 @@ app.add_middleware(
 
 # ── Routers ─────────────────────────────────────────────────────────────────
 app.include_router(repositories_router)
+app.include_router(scans_router)
 
 
 # ── Phase 1 health check (unchanged) ────────────────────────────────────────

@@ -45,6 +45,7 @@ frontend/.env.local
 tmp/
 temp/
 *.log
+.semgrep/
 
 # ==================================================
 # IDE / OS

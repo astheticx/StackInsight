@@ -4,8 +4,10 @@ Validates a GitHub URL, shallow-clones it into a temp directory,
 collects basic repo info, then cleans up the clone.
 """
 
+import os
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
@@ -64,6 +66,24 @@ EXT_LANGUAGE_MAP: Dict[str, str] = {
 # Helpers
 # --------------------------------------------------------------------------- #
 
+def cleanup_directory(path: str) -> None:
+    """Safely removes a directory tree, clearing Windows read-only git bits if present."""
+    if not path or not os.path.exists(path):
+        return
+
+    def _remove_readonly(func, file_path, exc_info):
+        try:
+            os.chmod(file_path, stat.S_IWRITE)
+            func(file_path)
+        except Exception:
+            pass
+
+    try:
+        shutil.rmtree(path, onerror=_remove_readonly)
+    except Exception:
+        pass
+
+
 def _parse_github_url(url: str) -> Tuple[str, str, str]:
     """Return (owner, repo_name, canonical_url) or raise HTTPException."""
     m = GITHUB_REPO_RE.match(url.strip())
@@ -81,22 +101,19 @@ def _collect_repo_info(clone_path: Path) -> Tuple[int, List[str]]:
     and detect languages from file extensions.
     """
     total_files = 0
-    seen_languages: dict[str, str] = {}   # ext -> display name (ordered set)
+    seen_languages: dict[str, str] = {}
 
     for item in clone_path.rglob("*"):
-        # Skip the .git directory
         if ".git" in item.parts:
             continue
         if item.is_file():
             total_files += 1
             ext = item.suffix.lower()
-            # Handle Dockerfile with no extension
             if item.name.lower() == "dockerfile" and ext == "":
                 ext = ".dockerfile"
             if ext in EXT_LANGUAGE_MAP and ext not in seen_languages:
                 seen_languages[ext] = EXT_LANGUAGE_MAP[ext]
 
-    # Deduplicate display names (e.g. .yml and .yaml both map to "YAML")
     detected = list(dict.fromkeys(seen_languages.values()))
     return total_files, detected
 
@@ -112,7 +129,6 @@ def prepare_repository(repository_url: str) -> dict:
     """
     owner, repo_name, canonical_url = _parse_github_url(repository_url)
 
-    # Confirm git is available
     try:
         subprocess.run(
             ["git", "--version"],
@@ -133,7 +149,6 @@ def prepare_repository(repository_url: str) -> dict:
 
     try:
         result = subprocess.run(
-            # shell=False (default) — argument list, no shell injection risk
             ["git", "clone", "--depth", "1", canonical_url, str(clone_path)],
             capture_output=True,
             text=True,
@@ -171,8 +186,7 @@ def prepare_repository(repository_url: str) -> dict:
             detail=f"Cloning timed out after {CLONE_TIMEOUT_SECONDS} seconds.",
         )
     finally:
-        # Always clean up — even on error
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+        cleanup_directory(tmp_dir)
 
     return {
         "status": "ready",
@@ -184,3 +198,5 @@ def prepare_repository(repository_url: str) -> dict:
         "total_files": total_files,
         "detected_languages": detected_languages,
     }
+
+parse_github_url = _parse_github_url
